@@ -126,7 +126,39 @@ Entrypoint (`scripts/entrypoint.sh`) does the following:
 - Writes runtime env to `${HERMES_HOME}/.env`
 - Creates `${HERMES_HOME}/config.yaml` if missing
 - Persists one-time marker `${HERMES_HOME}/.initialized`
+- Runs `scripts/bootstrap-extras.sh` for optional runtime setup (see below)
 - Starts `hermes gateway`
+
+## What's baked into the image
+
+This fork extends the upstream template with a few things so the agent can do
+more out of the box — no post-install fiddling on every deploy:
+
+- **Git + GitHub CLI (`gh`)** — for skills that touch GitHub.
+- **Playwright + Chromium** — pre-downloaded to `/opt/playwright-browsers` and
+  all the required shared libraries (`libnss3`, `libgbm1`, fonts, etc.) installed
+  via apt. The browser tool works immediately.
+- **Common fonts** (`fonts-liberation`, `fonts-noto-color-emoji`) — pages render
+  with readable text and emoji in screenshots.
+- **`PYTHONPATH=/opt/hermes-agent`** — skill scripts that import
+  `hermes_constants` (e.g. the Google Workspace setup) work without a manual
+  export.
+
+## Extending the runtime without rebuilding (`bootstrap-extras.sh`)
+
+For environment changes you want to make *without* rebuilding the Docker image,
+drop files onto your persistent volume under `/data/.hermes/`:
+
+| File | Purpose |
+|------|---------|
+| `extra-apt-packages` | One Debian package per line; installed on every boot. |
+| `extra-pip-packages` | One pip spec per line (e.g. `requests>=2.32`); installed on every boot. |
+| `post-bootstrap.sh` | Any executable script — runs after the two install steps above. Must be `chmod +x`. |
+
+`bootstrap-extras.sh` is idempotent and logs with a `[bootstrap-extras]` prefix,
+so reviewing container logs will show you what ran. It's a safety net for
+things that aren't worth a full image rebuild, or that the agent itself wants
+to manage at runtime.
 
 ## Troubleshooting
 
