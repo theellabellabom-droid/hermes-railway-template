@@ -121,5 +121,11 @@ if [[ -z "${TELEGRAM_ALLOWED_USERS:-}${DISCORD_ALLOWED_USERS:-}${SLACK_ALLOWED_U
   fi
 fi
 
+# Run optional extras (Playwright browsers, extra apt/pip packages, user hooks).
+# This is safe to call every boot — bootstrap-extras.sh is idempotent.
+if [[ -x /app/scripts/bootstrap-extras.sh ]]; then
+  /app/scripts/bootstrap-extras.sh || echo "[bootstrap] WARNING: bootstrap-extras.sh returned non-zero; continuing" >&2
+fi
+
 echo "[bootstrap] Starting Hermes gateway..."
 exec hermes gateway
